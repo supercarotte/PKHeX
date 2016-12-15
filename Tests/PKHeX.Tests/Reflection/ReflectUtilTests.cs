@@ -131,5 +131,37 @@ namespace PKHeX.Tests.Reflection
             // Check filter Item
             Assert.AreEqual("4", filters[12].PropertyValue);
         }
+
+        [TestMethod]
+        [TestCategory(BatchEditorCategory)]
+        public void TestProcessPKM()
+        {
+            // Todo: Basic tests for modifying common properties
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        [TestCategory(BatchEditorCategory)]
+        public void TestProcessPKMSpecialInstructions()
+        {
+            // Todo: Tests for special properties, testing uncommon code paths (like dates or random PID)
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        [TestCategory(BatchEditorCategory)]
+        public void TestProcessPKMRandomIVs()
+        {
+            // Todo: Tests for setting random IVs
+            throw new NotImplementedException();
+        }
+
+        [TestMethod]
+        [TestCategory(BatchEditorCategory)]
+        public void TestApplyFilters()
+        {
+            // Todo: Tests for applying filters
+            throw new NotImplementedException();
+        }
     }
 }

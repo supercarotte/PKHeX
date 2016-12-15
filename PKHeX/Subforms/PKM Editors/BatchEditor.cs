@@ -113,9 +113,8 @@ namespace PKHeX
             b.DoWork += (sender, e) => {
                 if (RB_SAV.Checked)
                 {
-                    var data = Main.SAV.BoxData;
-                    setupProgressBar(data.Length);
-                    processSAV(data, Filters, Instructions);
+                    setupProgressBar(Main.SAV.BoxData.Length);
+                    processSAV(Main.SAV, Filters, Instructions);
                 }
                 else
                 {
@@ -157,8 +156,9 @@ namespace PKHeX
         
         // Mass Editing
         private int ctr, len, err;
-        private void processSAV(PKM[] data, List<BatchEditorStringInstruction> Filters, List<BatchEditorStringInstruction> Instructions)
+        private void processSAV(SaveFile save, List<BatchEditorStringInstruction> Filters, List<BatchEditorStringInstruction> Instructions)
         {
+            var data = save.BoxData;
             len = err = ctr = 0;
             for (int i = 0; i < data.Length; i++)
             {
@@ -184,7 +184,7 @@ namespace PKHeX
                 b.ReportProgress(i);
             }
 
-            Main.SAV.BoxData = data;
+            save.BoxData = data;
         }
         private void processFolder(string[] files, List<BatchEditorStringInstruction> Filters, List<BatchEditorStringInstruction> Instructions, string destPath)
         {

@@ -319,7 +319,7 @@ namespace PKHeX
                 Encoding.Unicode.GetBytes(TempNick).CopyTo(Data, 0x78);
             }
         }
-        public int HT_Gender { get { return Data[0x92]; } set { Data[0x92] = (byte)value; } }
+        public override int HT_Gender { get { return Data[0x92]; } set { Data[0x92] = (byte)value; } }
         public override int CurrentHandler { get { return Data[0x93]; } set { Data[0x93] = (byte)value; } }
         public override int Geo1_Region { get { return Data[0x94]; } set { Data[0x94] = (byte)value; } }
         public override int Geo1_Country { get { return Data[0x95]; } set { Data[0x95] = (byte)value; } }
@@ -528,6 +528,17 @@ namespace PKHeX
                 HT_Friendship = HT_Affection = HT_TextVar = HT_Memory = HT_Intensity = HT_Feeling = 0;
             if (GenNumber < 6)
                 OT_Affection = OT_TextVar = OT_Memory = OT_Intensity = OT_Feeling = 0;
+            if (GenNumber >= 7)
+            {
+                HT_TextVar = HT_Memory = HT_Intensity = HT_Feeling =
+                OT_TextVar = OT_Memory = OT_Intensity = OT_Feeling = 0;
+                Geo1_Region = Geo1_Country = 
+                    Geo2_Region = Geo2_Country = 
+                    Geo3_Region = Geo3_Country = 
+                    Geo4_Region = Geo4_Country = 
+                    Geo5_Region = Geo5_Country = 0;
+                return;
+            }
 
             Geo1_Region = Geo1_Country > 0 ? Geo1_Region : 0;
             Geo2_Region = Geo2_Country > 0 ? Geo2_Region : 0;
@@ -616,31 +627,32 @@ namespace PKHeX
         private void UpdateEgg(int Day, int Month, int Year)
         {
             Met_Location = 30002;
-            Egg_Day = Day;
-            Egg_Month = Month;
-            Egg_Year = Year - 2000;
+            Met_Day = Day;
+            Met_Month = Month;
+            Met_Year = Year - 2000;
         }
         private void TradeGeoLocation(int GeoCountry, int GeoRegion)
         {
-            // Allow the method to abort if the values are invalid
-            if (GeoCountry < 0 || GeoRegion < 0)
-                return;
-
-            // Trickle down
-            Geo5_Country = Geo4_Country;
-            Geo5_Region = Geo4_Region;
-
-            Geo4_Country = Geo3_Country;
-            Geo4_Region = Geo3_Region;
-
-            Geo3_Country = Geo2_Country;
-            Geo3_Region = Geo2_Region;
-
-            Geo2_Country = Geo1_Country;
-            Geo2_Region = Geo1_Region;
-
-            Geo1_Country = GeoCountry;
-            Geo1_Region = GeoRegion;
+            return; // No geolocations are set, ever!
+            //// Allow the method to abort if the values are invalid
+            //if (GeoCountry < 0 || GeoRegion < 0)
+            //    return;
+            //
+            //// Trickle down
+            //Geo5_Country = Geo4_Country;
+            //Geo5_Region = Geo4_Region;
+            //
+            //Geo4_Country = Geo3_Country;
+            //Geo4_Region = Geo3_Region;
+            //
+            //Geo3_Country = Geo2_Country;
+            //Geo3_Region = Geo2_Region;
+            //
+            //Geo2_Country = Geo1_Country;
+            //Geo2_Region = Geo1_Region;
+            //
+            //Geo1_Country = GeoCountry;
+            //Geo1_Region = GeoRegion;
         }
         public void TradeMemory(bool Bank)
         {

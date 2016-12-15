@@ -86,7 +86,7 @@ namespace PKHeX
                 var metSanitize = (string[])metCXD_00000.Clone();
                 for (int i = 0; i < metSanitize.Length; i++)
                     if (metCXD_00000.Count(r => r == metSanitize[i]) > 1)
-                        metSanitize[i] += $" [{i.ToString("000")}]";
+                        metSanitize[i] += $" [{i:000}]";
                 metCXD_00000 = metSanitize;
 
                 // Current Generation strings
@@ -167,6 +167,7 @@ namespace PKHeX
                 itemlist[751] += " (2)"; // Meteorite
                 itemlist[771] += " (3)"; // Meteorite
                 itemlist[772] += " (4)"; // Meteorite
+                itemlist[842] += " (SM)"; // Fishing Rod
 
                 // Append Z-Crystal flagging
                 foreach (var i in Legal.Pouch_ZCrystal_SM)
@@ -344,7 +345,7 @@ namespace PKHeX
         public static void setItemDataSource(bool HaX, int MaxItemID, IEnumerable<ushort> allowed, int generation, GameVersion game, GameStrings s)
         {
             string[] items = s.getItemStrings(generation, game);
-            ItemDataSource = Util.getCBList(items, (HaX ? Enumerable.Range(0, MaxItemID) : allowed.Select(i => (int) i)).ToArray());
+            ItemDataSource = Util.getCBList(items, (allowed == null || HaX ? Enumerable.Range(0, MaxItemID) : allowed.Select(i => (int) i)).ToArray());
         }
         public static List<ComboItem> getLocationList(GameVersion Version, int SaveFormat, bool egg)
         {

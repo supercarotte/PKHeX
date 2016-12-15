@@ -9,8 +9,9 @@ namespace PKHeX
         private readonly SAV7 SAV = new SAV7(Main.SAV.Data);
         public SAV_Trainer7()
         {
+            Loading = true;
             InitializeComponent();
-            if (!Main.unicode)
+            if (Main.unicode)
             try { TB_OTName.Font = PKX.getPKXFont(11); }
             catch (Exception e) { Util.Alert("Font loading failed...", e.ToString()); }
 
@@ -22,8 +23,11 @@ namespace PKHeX
             
             getComboBoxes();
             getTextBoxes();
+            Loading = false;
         }
         private readonly ToolTip Tip1 = new ToolTip(), Tip2 = new ToolTip();
+        private readonly bool Loading;
+        private bool MapUpdated;
 
         private void getComboBoxes()
         {
@@ -51,7 +55,7 @@ namespace PKHeX
             var alolatime_list = new[] { new { Text = "Sun Time", Value = 24*60*60 } };
             Array.Resize(ref alolatime_list, 24);
             for (int i = 1; i < 24; i++)
-                alolatime_list[i] = new {Text = $"+{i.ToString("00")} Hours", Value = i*60*60};
+                alolatime_list[i] = new {Text = $"+{i:00} Hours", Value = i*60*60};
             alolatime_list[12] = new {Text = "Moon Time", Value = 12 * 60 * 60};
 
             CB_3DSReg.DisplayMember = "Text";
@@ -102,6 +106,7 @@ namespace PKHeX
                 NUD_X.Value = (decimal)SAV.X;
                 NUD_Z.Value = (decimal)SAV.Z;
                 NUD_Y.Value = (decimal)SAV.Y;
+                NUD_R.Value = (decimal)SAV.R;
             }
             catch { GB_Map.Enabled = false; }
 
@@ -116,6 +121,32 @@ namespace PKHeX
             CAL_AdventureStartTime.Value = new DateTime(2000, 1, 1).AddSeconds(SAV.SecondsToStart % 86400);
             CAL_HoFDate.Value = new DateTime(2000, 1, 1).AddSeconds(SAV.SecondsToFame);
             CAL_HoFTime.Value = new DateTime(2000, 1, 1).AddSeconds(SAV.SecondsToFame % 86400);
+
+            NUD_BP.Value = Math.Min(NUD_BP.Maximum, SAV.BP);
+            NUD_FC.Value = Math.Min(NUD_FC.Maximum, SAV.FestaCoins);
+
+            // Poké Finder
+            NUD_SnapCount.Value = Math.Min(NUD_SnapCount.Maximum, SAV.PokeFinderSnapCount);
+            NUD_ThumbsTotal.Value = Math.Min(NUD_SnapCount.Maximum, SAV.PokeFinderThumbsTotalValue);
+            NUD_ThumbsRecord.Value = Math.Min(NUD_SnapCount.Maximum, SAV.PokeFinderThumbsHighValue);
+
+            CB_CameraVersion.SelectedIndex = Math.Min(CB_CameraVersion.Items.Count - 1, SAV.PokeFinderCameraVersion);
+            CHK_Gyro.Checked = SAV.PokeFinderGyroFlag;
+
+            // Battle Tree
+            NUD_RCStreak0.Value = Math.Min(NUD_RCStreak0.Maximum, SAV.getTreeStreak(0, super: false, max: false));
+            NUD_RCStreak1.Value = Math.Min(NUD_RCStreak1.Maximum, SAV.getTreeStreak(1, super: false, max: false));
+            NUD_RCStreak2.Value = Math.Min(NUD_RCStreak2.Maximum, SAV.getTreeStreak(2, super: false, max: false));
+            NUD_RMStreak0.Value = Math.Min(NUD_RMStreak0.Maximum, SAV.getTreeStreak(0, super: false, max: true));
+            NUD_RMStreak1.Value = Math.Min(NUD_RMStreak1.Maximum, SAV.getTreeStreak(1, super: false, max: true));
+            NUD_RMStreak2.Value = Math.Min(NUD_RMStreak2.Maximum, SAV.getTreeStreak(2, super: false, max: true));
+
+            NUD_SCStreak0.Value = Math.Min(NUD_SCStreak0.Maximum, SAV.getTreeStreak(0, super: true, max: false));
+            NUD_SCStreak1.Value = Math.Min(NUD_SCStreak1.Maximum, SAV.getTreeStreak(1, super: true, max: false));
+            NUD_SCStreak2.Value = Math.Min(NUD_SCStreak2.Maximum, SAV.getTreeStreak(2, super: true, max: false));
+            NUD_SMStreak0.Value = Math.Min(NUD_SMStreak0.Maximum, SAV.getTreeStreak(0, super: true, max: true));
+            NUD_SMStreak1.Value = Math.Min(NUD_SMStreak1.Maximum, SAV.getTreeStreak(1, super: true, max: true));
+            NUD_SMStreak2.Value = Math.Min(NUD_SMStreak2.Maximum, SAV.getTreeStreak(2, super: true, max: true));
         }
         private void save()
         {
@@ -134,12 +165,13 @@ namespace PKHeX
             SAV.OT = TB_OTName.Text;
 
             // Copy Position
-            if (GB_Map.Enabled)
+            if (GB_Map.Enabled && MapUpdated)
             {
                 SAV.M = (int)NUD_M.Value;
                 SAV.X = (float)NUD_X.Value;
                 SAV.Z = (float)NUD_Z.Value;
                 SAV.Y = (float)NUD_Y.Value;
+                SAV.R = (float)NUD_R.Value;
             }
             
             // Save PlayTime
@@ -162,6 +194,32 @@ namespace PKHeX
             SAV.LastSavedDay = CAL_LastSavedDate.Value.Day;
             SAV.LastSavedHour = CAL_LastSavedTime.Value.Hour;
             SAV.LastSavedMinute = CAL_LastSavedTime.Value.Minute;
+
+            SAV.BP = (uint)NUD_BP.Value;
+            SAV.FestaCoins = (uint)NUD_FC.Value;
+
+            // Poké Finder
+            SAV.PokeFinderSnapCount = (uint)NUD_SnapCount.Value;
+            SAV.PokeFinderThumbsTotalValue = (uint)NUD_ThumbsTotal.Value;
+            SAV.PokeFinderThumbsHighValue = (uint)NUD_ThumbsRecord.Value;
+
+            SAV.PokeFinderCameraVersion = (ushort)CB_CameraVersion.SelectedIndex;
+            SAV.PokeFinderGyroFlag = CHK_Gyro.Checked;
+
+            // Battle Tree
+            SAV.setTreeStreak((int)NUD_RCStreak0.Value, 0, super:false, max:false);
+            SAV.setTreeStreak((int)NUD_RCStreak1.Value, 1, super:false, max:false);
+            SAV.setTreeStreak((int)NUD_RCStreak2.Value, 2, super:false, max:false);
+            SAV.setTreeStreak((int)NUD_RMStreak0.Value, 0, super:false, max:true);
+            SAV.setTreeStreak((int)NUD_RMStreak1.Value, 1, super:false, max:true);
+            SAV.setTreeStreak((int)NUD_RMStreak2.Value, 2, super:false, max:true);
+
+            SAV.setTreeStreak((int)NUD_SCStreak0.Value, 0, super:true, max:false);
+            SAV.setTreeStreak((int)NUD_SCStreak1.Value, 1, super:true, max:false);
+            SAV.setTreeStreak((int)NUD_SCStreak2.Value, 2, super:true, max:false);
+            SAV.setTreeStreak((int)NUD_SMStreak0.Value, 0, super:true, max:true);
+            SAV.setTreeStreak((int)NUD_SMStreak1.Value, 1, super:true, max:true);
+            SAV.setTreeStreak((int)NUD_SMStreak2.Value, 2, super:true, max:true);
         }
 
         private void clickOT(object sender, MouseEventArgs e)
@@ -178,11 +236,14 @@ namespace PKHeX
         }
         private void showTSV(object sender, EventArgs e)
         {
-            uint TID = Util.ToUInt32(MT_TID.Text);
-            uint SID = Util.ToUInt32(MT_SID.Text);
-            uint tsv = (TID ^ SID) >> 4;
-            Tip1.SetToolTip(MT_TID, "TSV: " + tsv.ToString("0000"));
-            Tip2.SetToolTip(MT_SID, "TSV: " + tsv.ToString("0000"));
+            SAV.TID = (ushort)Util.ToUInt32(MT_TID.Text);
+            SAV.SID = (ushort)Util.ToUInt32(MT_SID.Text);
+            int tsv = (SAV.TID ^ SAV.SID) >> 4;
+            string IDstr = "TSV: " + tsv.ToString("0000");
+            if (SAV.Generation > 6) // always true for G7
+                IDstr += Environment.NewLine + "G7TID: " + SAV.TrainerID7.ToString("000000");
+            Tip1.SetToolTip(MT_TID, IDstr);
+            Tip2.SetToolTip(MT_SID, IDstr);
         }
 
         private void B_Cancel_Click(object sender, EventArgs e)
@@ -208,11 +269,27 @@ namespace PKHeX
             if (box?.Text == "") box.Text = "0";
             if (Util.ToInt32(box.Text) > 65535) box.Text = "65535";
         }
-
+        private void changeMapValue(object sender, EventArgs e)
+        {
+            if (!Loading)
+                MapUpdated = true;
+        }
         private void updateCountry(object sender, EventArgs e)
         {
             if (Util.getIndex(sender as ComboBox) > 0)
                 Main.setCountrySubRegion(CB_Region, "sr_" + Util.getIndex(sender as ComboBox).ToString("000"));
+        }
+        private void B_Fashion_Click(object sender, EventArgs e)
+        {
+            var prompt = Util.Prompt(MessageBoxButtons.YesNo, "Giving all Fashion Items will clear existing data", "Continue?");
+            if (DialogResult.Yes != prompt)
+                return;
+
+            // Clear Block
+            new byte[SAV.FashionLength].CopyTo(SAV.Data, SAV.Fashion);
+            // Write Payload
+            byte[] data = SAV.Gender == 0 ? Properties.Resources.fashion_m_sm : Properties.Resources.fashion_f_sm;
+            data.CopyTo(SAV.Data, SAV.Fashion);
         }
     }
 }

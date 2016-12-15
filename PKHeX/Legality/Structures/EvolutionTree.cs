@@ -7,7 +7,7 @@ namespace PKHeX
     public class EvolutionTree
     {
         private List<EvolutionSet> Entries { get; } = new List<EvolutionSet>();
-        private EvolutionLineage[] Lineage { get; }
+        private readonly EvolutionLineage[] Lineage;
         private readonly GameVersion Game;
         private readonly PersonalTable Personal;
         private readonly int MaxSpecies;
@@ -31,6 +31,8 @@ namespace PKHeX
             Lineage = new EvolutionLineage[Entries.Count];
             for (int i = 0; i < Entries.Count; i++)
                 Lineage[i] = new EvolutionLineage();
+            if (Game == GameVersion.ORAS)
+                Array.Resize(ref Lineage, maxSpecies + 1);
 
             // Populate Lineages
             for (int i = 1; i < Lineage.Length; i++)
@@ -140,10 +142,10 @@ namespace PKHeX
 
             return Personal.getFormeIndex(evolvesToSpecies, evolvesToForm);
         }
-        public IEnumerable<DexLevel> getValidPreEvolutions(PKM pkm, int lvl)
+        public IEnumerable<DexLevel> getValidPreEvolutions(PKM pkm, int lvl, bool skipChecks = false)
         {
             int index = getIndex(pkm);
-            return Lineage[index].getExplicitLineage(pkm, lvl, MaxSpecies);
+            return Lineage[index].getExplicitLineage(pkm, lvl, skipChecks, MaxSpecies);
         }
     }
 
@@ -157,6 +159,7 @@ namespace PKHeX
         public EvolutionSet6(byte[] data)
         {
             if (data.Length < SIZE || data.Length % SIZE != 0) return;
+            int[] argEvos = {6, 8, 16, 17, 18, 19, 20, 21, 22, 29, 30, 31, 32, 33, 34};
             PossibleEvolutions = new EvolutionMethod[data.Length / SIZE];
             for (int i = 0; i < data.Length; i += SIZE)
             {
@@ -169,6 +172,10 @@ namespace PKHeX
                     // Copy
                     Level = BitConverter.ToUInt16(data, i + 2),
                 };
+
+                // Argument is used by both Level argument and Item/Move/etc. Clear if appropriate.
+                if (argEvos.Contains(PossibleEvolutions[i/SIZE].Method))
+                    PossibleEvolutions[i/SIZE].Level = 0;
             }
         }
     }
@@ -204,7 +211,7 @@ namespace PKHeX
         public static readonly int[] TradeMethods = {5, 6, 7};
         public GameVersion[] Banlist = new GameVersion[0];
 
-        public bool Valid(PKM pkm, int lvl)
+        public bool Valid(PKM pkm, int lvl, bool skipChecks)
         {
             RequiresLevelUp = false;
             if (Form > -1)
@@ -218,15 +225,19 @@ namespace PKHeX
             {
                 case 8: // Use Item
                     return true;
+                case 17: // Male
+                    return pkm.Gender == 0;
+                case 18: // Female
+                    return pkm.Gender == 1;
 
                 case 5: // Trade Evolution
                 case 6: // Trade while Holding
                 case 7: // Trade for Opposite Species
-                    return !pkm.IsUntraded;
+                    return !pkm.IsUntraded || skipChecks;
                 
                     // Special Levelup Cases
                 case 16:
-                    if (pkm.CNT_Beauty > Argument)
+                    if (pkm.CNT_Beauty < Argument)
                         return false;
                     goto default;
                 case 23: // Gender = Male
@@ -245,8 +256,8 @@ namespace PKHeX
                 case 36: // Any Time on Version
                 case 37: // Daytime on Version
                 case 38: // Nighttime on Version
-                    if (pkm.Version != Argument && pkm.IsUntraded)
-                        return false;
+                    if (pkm.Version != Argument && pkm.IsUntraded || skipChecks)
+                        return skipChecks;
                     goto default;
 
                 default:
@@ -273,7 +284,6 @@ namespace PKHeX
                         case 6:
                         case 7:
                             return lvl >= Level && (!pkm.IsNative || pkm.Met_Level < lvl);
-
                     }
                     return false;
             }
@@ -336,16 +346,18 @@ namespace PKHeX
             Chain.Insert(0, evo);
         }
 
-        public IEnumerable<DexLevel> getExplicitLineage(PKM pkm, int lvl, int maxSpecies)
+        public IEnumerable<DexLevel> getExplicitLineage(PKM pkm, int lvl, bool skipChecks, int maxSpecies)
         {
             List<DexLevel> dl = new List<DexLevel> { new DexLevel { Species = pkm.Species, Level = lvl, Form = pkm.AltForm } };
             for (int i = Chain.Count-1; i >= 0; i--) // reverse evolution!
             {
+                bool oneValid = false;
                 foreach (var evo in Chain[i].StageEntryMethods)
                 {
-                    if (!evo.Valid(pkm, lvl))
+                    if (!evo.Valid(pkm, lvl, skipChecks))
                         continue;
 
+                    oneValid = true;
                     if (evo.Species > maxSpecies) // Gen7 Personal Formes -- unmap the forme personal entry to the actual species ID since species are consecutive
                         dl.Add(evo.GetDexLevel(pkm.Species - Chain.Count + i, lvl));
                     else
@@ -355,6 +367,8 @@ namespace PKHeX
                         lvl--;
                     break;
                 }
+                if (!oneValid)
+                    break;
             }
             return dl;
         }

@@ -21,7 +21,7 @@ namespace PKHeX
         public byte[] Footer { protected get; set; } = new byte[0]; // .dsv
         public byte[] Header { protected get; set; } = new byte[0]; // .gci
         public bool Japanese { get; set; }
-        public string PlayTimeString => $"{PlayedHours}ː{PlayedMinutes.ToString("00")}ː{PlayedSeconds.ToString("00")}"; // not :
+        public string PlayTimeString => $"{PlayedHours}ː{PlayedMinutes:00}ː{PlayedSeconds:00}"; // not :
         public virtual bool IndeterminateGame => false;
         public virtual bool IndeterminateLanguage => false;
         public virtual bool IndeterminateSubVersion => false;
@@ -145,7 +145,7 @@ namespace PKHeX
                 for (int i = 0; i < data.Length; i++)
                 {
                     data[i] = getStoredSlot(getBoxOffset(i/BoxSlotCount) + SIZE_STORED*(i%BoxSlotCount));
-                    data[i].Identifier = $"{getBoxName(i/BoxSlotCount)}:{(i%BoxSlotCount + 1).ToString("00")}";
+                    data[i].Identifier = $"{getBoxName(i/BoxSlotCount)}:{i%BoxSlotCount + 1:00}";
                     data[i].Box = i/BoxSlotCount + 1;
                     data[i].Slot = i%BoxSlotCount + 1;
                 }
@@ -310,6 +310,7 @@ namespace PKHeX
         public virtual int Game { get { return -1; } set { } }
         public virtual ushort TID { get; set; }
         public virtual ushort SID { get; set; }
+        public int TrainerID7 => (int)((uint)(TID | (SID << 16)) % 1000000);
         public virtual string OT { get; set; }
         public virtual int PlayedHours { get; set; }
         public virtual int PlayedMinutes { get; set; }
@@ -327,7 +328,8 @@ namespace PKHeX
         public abstract int getPartyOffset(int slot);
         public abstract string getBoxName(int box);
         public abstract void setBoxName(int box, string val);
-        public virtual ulong? GameSyncID { get { return null; } set { } }
+        public virtual int GameSyncIDSize { get; } = 8;
+        public virtual string GameSyncID { get { return null; } set { } }
         public virtual ulong? Secure1 { get { return null; } set { } }
         public virtual ulong? Secure2 { get { return null; } set { } }
 

@@ -71,27 +71,43 @@ namespace PKHeX.Reflection
 
         private static void screenStrings(IEnumerable<BatchEditorStringInstruction> il)
         {
-            GameInfo.GameStrings strings;
-            if (Main.GameStrings == null)
-            {
-                strings = GameInfo.GameStrings.CreateFromCurrentCulture();
-            }
-            else
-            {
-                strings = Main.GameStrings;
-            }
+            var strings = Main.GameStrings ?? GameInfo.GameStrings.CreateFromCurrentCulture();
 
             foreach (var i in il.Where(i => !i.PropertyValue.All(char.IsDigit)))
             {
+                string pv = i.PropertyValue;
+                if (pv.StartsWith("$") && pv.Contains(','))
+                {
+                    string str = pv.Substring(1);
+                    var split = str.Split(',');
+                    int.TryParse(split[0], out i.Min);
+                    int.TryParse(split[1], out i.Max);
+
+                    if (i.Min == i.Max)
+                    {
+                        i.PropertyValue = i.Min.ToString();
+                        Console.WriteLine(i.PropertyName + " randomization range Min/Max same?");
+                    }
+                    else
+                        i.Random = true;
+                }
+
                 switch (i.PropertyName)
                 {
                     case nameof(PKM.Species): i.setScreenedValue(strings.specieslist); continue;
                     case nameof(PKM.HeldItem): i.setScreenedValue(strings.itemlist); continue;
-                    case nameof(PKM.Move1): case nameof(PKM.Move2): case nameof(PKM.Move3): case nameof(PKM.Move4): i.setScreenedValue(strings.movelist); continue;
-                    case nameof(PKM.RelearnMove1): case nameof(PKM.RelearnMove2): case nameof(PKM.RelearnMove3): case nameof(PKM.RelearnMove4): i.setScreenedValue(strings.movelist); continue;
                     case nameof(PKM.Ability): i.setScreenedValue(strings.abilitylist); continue;
                     case nameof(PKM.Nature): i.setScreenedValue(strings.natures); continue;
                     case nameof(PKM.Ball): i.setScreenedValue(strings.balllist); continue;
+                    case nameof(PKM.Move1):
+                    case nameof(PKM.Move2):
+                    case nameof(PKM.Move3):
+                    case nameof(PKM.Move4):
+                    case nameof(PKM.RelearnMove1):
+                    case nameof(PKM.RelearnMove2):
+                    case nameof(PKM.RelearnMove3):
+                    case nameof(PKM.RelearnMove4):
+                        i.setScreenedValue(strings.movelist); continue;
                 }
             }
         }

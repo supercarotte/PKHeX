@@ -29,6 +29,9 @@ namespace PKHeX
         public CheckResult[] vRelearn = new CheckResult[4];
         public string Report => getLegalityReport();
         public string VerboseReport => getVerboseLegalityReport();
+        public readonly int[] AllSuggestedMoves;
+        public readonly int[] AllSuggestedRelearnMoves;
+        public readonly int[] AllSuggestedMovesAndRelearn;
 
         public LegalityAnalysis(PKM pk)
         {
@@ -47,6 +50,9 @@ namespace PKHeX
                     default: return;
                 }
 
+                if (pkm.Format == 7) // Temp G7 Bank Checks
+                    verifyG7PreBank();
+
                 Valid = Parsed = Parse.Any();
                 if (Parsed)
                 {
@@ -63,6 +69,9 @@ namespace PKHeX
             }
             catch { Valid = false; }
             getLegalityReport();
+            AllSuggestedMoves = !isOriginValid(pkm) ? new int[4] : getSuggestedMoves(true, true, true);
+            AllSuggestedRelearnMoves = !isOriginValid(pkm) ? new int[4] : Legal.getValidRelearn(pkm, -1).ToArray();
+            AllSuggestedMovesAndRelearn = AllSuggestedMoves.Concat(AllSuggestedRelearnMoves).ToArray();
         }
 
         private void AddLine(Severity s, string c, CheckIdentifier i)
@@ -76,7 +85,7 @@ namespace PKHeX
         private void parsePK6(PKM pk)
         {
             pkm = pk;
-            if (pkm.Species > 721)
+            if (!isOriginValid(pkm))
             { AddLine(Severity.Invalid, "Species does not exist in origin game.", CheckIdentifier.None); return; }
 
             updateRelearnLegality();
@@ -86,12 +95,26 @@ namespace PKHeX
         private void parsePK7(PKM pk)
         {
             pkm = pk;
-            if (pkm.Species > 802)
+            if (!isOriginValid(pkm))
             { AddLine(Severity.Invalid, "Species does not exist in origin game.", CheckIdentifier.None); return; }
 
             updateRelearnLegality();
             updateMoveLegality();
             updateChecks();
+        }
+        private bool isOriginValid(PKM pk)
+        {
+            switch (pkm.GenNumber)
+            {
+                case 1: return pkm.Species <= 151;
+                case 2: return pkm.Species <= 251;
+                case 3: return pkm.Species <= 386;
+                case 4: return pkm.Species <= 493;
+                case 5: return pkm.Species <= 649;
+                case 6: return pkm.Species <= 721;
+                case 7: return pkm.Species <= 802;
+                default: return false;
+            }
         }
 
         private void updateRelearnLegality()
@@ -139,6 +162,8 @@ namespace PKHeX
             verifyForm();
             verifyMisc();
             verifyGender();
+
+            verifyVersionEvolution();
             // SecondaryChecked = true;
         }
         private string getLegalityReport()
@@ -190,9 +215,7 @@ namespace PKHeX
 
         public int[] getSuggestedRelearn()
         {
-            if (RelearnBase == null)
-                return new int[4];
-            if (pkm.GenNumber < 6)
+            if (RelearnBase == null || pkm.GenNumber < 6 || !isOriginValid(pkm))
                 return new int[4];
 
             if (!pkm.WasEgg)
@@ -208,11 +231,67 @@ namespace PKHeX
                 window.AddRange(new int[4 - window.Count]);
             return window.Skip(window.Count - 4).Take(4).ToArray();
         }
-        public int[] getSuggestedMoves(bool tm, bool tutor)
+        public int[] getSuggestedMoves(bool tm, bool tutor, bool reminder)
         {
-            if (pkm.Format < 6)
+            if (pkm == null || pkm.GenNumber < 6 || !isOriginValid(pkm))
                 return null;
-            return Legal.getValidMoves(pkm, Tutor: tutor, Machine: tm).Skip(1).ToArray(); // skip move 0
+            return Legal.getValidMoves(pkm, Tutor: tutor, Machine: tm, MoveReminder: reminder).Skip(1).ToArray(); // skip move 0
+        }
+
+        public EncounterStatic getSuggestedMetInfo()
+        {
+            if (pkm == null)
+                return null;
+
+            if (pkm.WasEgg)
+                return new EncounterStatic
+                {
+                    Species = Legal.getBaseSpecies(pkm),
+                    Location = getSuggestedEggMetLocation(pkm),
+                    Level = 1,
+                };
+
+            var capture = Legal.getCaptureLocation(pkm);
+            if (capture != null)
+                return new EncounterStatic
+                {
+                    Species = capture.Slots.First().Species,
+                    Location = capture.Location,
+                    Level = capture.Slots.First().LevelMin,
+                };
+
+            var encounter = Legal.getStaticLocation(pkm);
+            return encounter;
+        }
+        private static int getSuggestedEggMetLocation(PKM pkm)
+        {
+            // Return one of legal hatch locations for game
+            switch ((GameVersion)pkm.Version)
+            {
+                case GameVersion.D:
+                case GameVersion.P:
+                case GameVersion.Pt:
+                    return pkm.Format > 4 ? 30001 /* Transporter */ : 4; // Solaceon Town
+                case GameVersion.HG:
+                case GameVersion.SS:
+                    return pkm.Format > 4 ? 30001 /* Transporter */ : 182; // Route 34
+
+                case GameVersion.B:
+                case GameVersion.W:
+                    return 16; // Route 3
+
+                case GameVersion.X:
+                case GameVersion.Y:
+                    return 38; // Route 7
+                case GameVersion.AS:
+                case GameVersion.OR:
+                    return 318; // Battle Resort
+
+                case GameVersion.SN:
+                case GameVersion.MN:
+                    return 50; // Route 4
+            }
+            return -1;
         }
     }
 }

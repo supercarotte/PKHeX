@@ -127,7 +127,9 @@
             this.Label_MetLocation = new System.Windows.Forms.Label();
             this.CB_MetLocation = new System.Windows.Forms.ComboBox();
             this.FLP_Ball = new System.Windows.Forms.FlowLayoutPanel();
+            this.FLP_BallLeft = new System.Windows.Forms.FlowLayoutPanel();
             this.Label_Ball = new System.Windows.Forms.Label();
+            this.PB_Ball = new System.Windows.Forms.PictureBox();
             this.CB_Ball = new System.Windows.Forms.ComboBox();
             this.FLP_MetLevel = new System.Windows.Forms.FlowLayoutPanel();
             this.Label_MetLevel = new System.Windows.Forms.Label();
@@ -433,6 +435,7 @@
             this.B_OUTPasserby = new System.Windows.Forms.Button();
             this.B_CGearSkin = new System.Windows.Forms.Button();
             this.B_OpenPokeBeans = new System.Windows.Forms.Button();
+            this.B_OpenZygardeCells = new System.Windows.Forms.Button();
             this.dragout = new System.Windows.Forms.PictureBox();
             this.mnuL = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.mnuLLegality = new System.Windows.Forms.ToolStripMenuItem();
@@ -479,6 +482,8 @@
             this.FLP_OriginGame.SuspendLayout();
             this.FLP_MetLocation.SuspendLayout();
             this.FLP_Ball.SuspendLayout();
+            this.FLP_BallLeft.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.PB_Ball)).BeginInit();
             this.FLP_MetLevel.SuspendLayout();
             this.FLP_MetDate.SuspendLayout();
             this.FLP_Fateful.SuspendLayout();
@@ -1755,6 +1760,7 @@
             this.Label_MetLocation.TabIndex = 1;
             this.Label_MetLocation.Text = "Met Location:";
             this.Label_MetLocation.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.Label_MetLocation.Click += new System.EventHandler(this.clickMetLocation);
             // 
             // CB_MetLocation
             // 
@@ -1774,7 +1780,7 @@
             // FLP_Ball
             // 
             this.FLP_Ball.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.FLP_Ball.Controls.Add(this.Label_Ball);
+            this.FLP_Ball.Controls.Add(this.FLP_BallLeft);
             this.FLP_Ball.Controls.Add(this.CB_Ball);
             this.FLP_Ball.Location = new System.Drawing.Point(0, 42);
             this.FLP_Ball.Margin = new System.Windows.Forms.Padding(0);
@@ -1782,15 +1788,39 @@
             this.FLP_Ball.Size = new System.Drawing.Size(272, 21);
             this.FLP_Ball.TabIndex = 114;
             // 
+            // FLP_BallLeft
+            // 
+            this.FLP_BallLeft.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            this.FLP_BallLeft.Controls.Add(this.Label_Ball);
+            this.FLP_BallLeft.Controls.Add(this.PB_Ball);
+            this.FLP_BallLeft.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
+            this.FLP_BallLeft.Location = new System.Drawing.Point(0, 0);
+            this.FLP_BallLeft.Margin = new System.Windows.Forms.Padding(0);
+            this.FLP_BallLeft.Name = "FLP_BallLeft";
+            this.FLP_BallLeft.Size = new System.Drawing.Size(110, 21);
+            this.FLP_BallLeft.TabIndex = 4;
+            // 
             // Label_Ball
             // 
-            this.Label_Ball.Location = new System.Drawing.Point(0, 0);
+            this.Label_Ball.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            this.Label_Ball.AutoSize = true;
+            this.Label_Ball.Location = new System.Drawing.Point(83, 0);
             this.Label_Ball.Margin = new System.Windows.Forms.Padding(0);
             this.Label_Ball.Name = "Label_Ball";
-            this.Label_Ball.Size = new System.Drawing.Size(110, 21);
+            this.Label_Ball.Padding = new System.Windows.Forms.Padding(0, 3, 0, 3);
+            this.Label_Ball.Size = new System.Drawing.Size(27, 19);
             this.Label_Ball.TabIndex = 2;
             this.Label_Ball.Text = "Ball:";
             this.Label_Ball.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // PB_Ball
+            // 
+            this.PB_Ball.Location = new System.Drawing.Point(60, 0);
+            this.PB_Ball.Margin = new System.Windows.Forms.Padding(0, 0, 3, 0);
+            this.PB_Ball.Name = "PB_Ball";
+            this.PB_Ball.Size = new System.Drawing.Size(20, 20);
+            this.PB_Ball.TabIndex = 3;
+            this.PB_Ball.TabStop = false;
             // 
             // CB_Ball
             // 
@@ -1803,6 +1833,7 @@
             this.CB_Ball.Size = new System.Drawing.Size(126, 21);
             this.CB_Ball.TabIndex = 3;
             this.CB_Ball.SelectedIndexChanged += new System.EventHandler(this.validateComboBox2);
+            this.CB_Ball.SelectedValueChanged += new System.EventHandler(this.updateBall);
             this.CB_Ball.KeyDown += new System.Windows.Forms.KeyEventHandler(this.removedropCB);
             this.CB_Ball.Validating += new System.ComponentModel.CancelEventHandler(this.validateComboBox);
             // 
@@ -3142,11 +3173,13 @@
             // 
             this.CB_Move4.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.CB_Move4.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
+            this.CB_Move4.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.CB_Move4.FormattingEnabled = true;
             this.CB_Move4.Location = new System.Drawing.Point(9, 92);
             this.CB_Move4.Name = "CB_Move4";
             this.CB_Move4.Size = new System.Drawing.Size(121, 21);
             this.CB_Move4.TabIndex = 10;
+            this.CB_Move4.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.validateMovePaint);
             this.CB_Move4.SelectedIndexChanged += new System.EventHandler(this.validateMove);
             this.CB_Move4.KeyDown += new System.Windows.Forms.KeyEventHandler(this.removedropCB);
             this.CB_Move4.Leave += new System.EventHandler(this.validateComboBox2);
@@ -3171,11 +3204,13 @@
             // 
             this.CB_Move3.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.CB_Move3.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
+            this.CB_Move3.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.CB_Move3.FormattingEnabled = true;
             this.CB_Move3.Location = new System.Drawing.Point(9, 70);
             this.CB_Move3.Name = "CB_Move3";
             this.CB_Move3.Size = new System.Drawing.Size(121, 21);
             this.CB_Move3.TabIndex = 7;
+            this.CB_Move3.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.validateMovePaint);
             this.CB_Move3.SelectedIndexChanged += new System.EventHandler(this.validateMove);
             this.CB_Move3.KeyDown += new System.Windows.Forms.KeyEventHandler(this.removedropCB);
             this.CB_Move3.Leave += new System.EventHandler(this.validateComboBox2);
@@ -3185,11 +3220,13 @@
             // 
             this.CB_Move2.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.CB_Move2.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
+            this.CB_Move2.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.CB_Move2.FormattingEnabled = true;
             this.CB_Move2.Location = new System.Drawing.Point(9, 48);
             this.CB_Move2.Name = "CB_Move2";
             this.CB_Move2.Size = new System.Drawing.Size(121, 21);
             this.CB_Move2.TabIndex = 4;
+            this.CB_Move2.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.validateMovePaint);
             this.CB_Move2.SelectedIndexChanged += new System.EventHandler(this.validateMove);
             this.CB_Move2.KeyDown += new System.Windows.Forms.KeyEventHandler(this.removedropCB);
             this.CB_Move2.Leave += new System.EventHandler(this.validateComboBox2);
@@ -3199,11 +3236,13 @@
             // 
             this.CB_Move1.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.CB_Move1.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
+            this.CB_Move1.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.CB_Move1.FormattingEnabled = true;
             this.CB_Move1.Location = new System.Drawing.Point(9, 26);
             this.CB_Move1.Name = "CB_Move1";
             this.CB_Move1.Size = new System.Drawing.Size(121, 21);
             this.CB_Move1.TabIndex = 1;
+            this.CB_Move1.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.validateMovePaint);
             this.CB_Move1.SelectedIndexChanged += new System.EventHandler(this.validateMove);
             this.CB_Move1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.removedropCB);
             this.CB_Move1.Leave += new System.EventHandler(this.validateComboBox2);
@@ -5350,7 +5389,7 @@
             this.TB_GameSync.Size = new System.Drawing.Size(120, 20);
             this.TB_GameSync.TabIndex = 10;
             this.TB_GameSync.Text = "0000000000000000";
-            this.TB_GameSync.TextChanged += new System.EventHandler(this.updateU64);
+            this.TB_GameSync.TextChanged += new System.EventHandler(this.updateGameSyncID);
             // 
             // B_SaveBoxBin
             // 
@@ -5407,6 +5446,7 @@
             this.FLP_SAVtools.Controls.Add(this.B_OUTPasserby);
             this.FLP_SAVtools.Controls.Add(this.B_CGearSkin);
             this.FLP_SAVtools.Controls.Add(this.B_OpenPokeBeans);
+            this.FLP_SAVtools.Controls.Add(this.B_OpenZygardeCells);
             this.FLP_SAVtools.Location = new System.Drawing.Point(6, 10);
             this.FLP_SAVtools.Name = "FLP_SAVtools";
             this.FLP_SAVtools.Size = new System.Drawing.Size(297, 87);
@@ -5585,6 +5625,16 @@
             this.B_OpenPokeBeans.UseVisualStyleBackColor = true;
             this.B_OpenPokeBeans.Click += new System.EventHandler(this.B_OpenPokeBeans_Click);
             // 
+            // B_OpenZygardeCells
+            // 
+            this.B_OpenZygardeCells.Location = new System.Drawing.Point(189, 148);
+            this.B_OpenZygardeCells.Name = "B_OpenZygardeCells";
+            this.B_OpenZygardeCells.Size = new System.Drawing.Size(87, 23);
+            this.B_OpenZygardeCells.TabIndex = 26;
+            this.B_OpenZygardeCells.Text = "Zygarde Cells";
+            this.B_OpenZygardeCells.UseVisualStyleBackColor = true;
+            this.B_OpenZygardeCells.Click += new System.EventHandler(this.B_OpenZygardeCells_Click);
+            // 
             // dragout
             // 
             this.dragout.BackColor = System.Drawing.Color.Transparent;
@@ -5727,6 +5777,9 @@
             this.FLP_OriginGame.ResumeLayout(false);
             this.FLP_MetLocation.ResumeLayout(false);
             this.FLP_Ball.ResumeLayout(false);
+            this.FLP_BallLeft.ResumeLayout(false);
+            this.FLP_BallLeft.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.PB_Ball)).EndInit();
             this.FLP_MetLevel.ResumeLayout(false);
             this.FLP_MetLevel.PerformLayout();
             this.FLP_MetDate.ResumeLayout(false);
@@ -6294,6 +6347,9 @@
         private System.Windows.Forms.ToolStripMenuItem Menu_Redo;
         private System.Windows.Forms.PictureBox PB_MarkAlola;
         private System.Windows.Forms.Button B_OpenPokeBeans;
+        private System.Windows.Forms.FlowLayoutPanel FLP_BallLeft;
+        private System.Windows.Forms.PictureBox PB_Ball;
+        private System.Windows.Forms.Button B_OpenZygardeCells;
     }
 }
 

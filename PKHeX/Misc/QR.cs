@@ -1,41 +1,77 @@
 ﻿using System;
 using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Web;
 using System.Windows.Forms;
+using PKHeX.Saves.Substructures;
 
 namespace PKHeX
 {
     public partial class QR : Form
     {
-        public QR(Image qr, Image pkm, string top, string bottom, string left, string right)
+        private readonly PKM pkm;
+        private readonly Image icon;
+        private Image qr;
+
+        private readonly string Line1;
+        private readonly string Line2;
+        private readonly string Line3;
+        private readonly string Line4;
+        private string extraText;
+
+        public QR(Image qr, Image icon, string line1, string line2, string line3, string line4, PKM pk = null)
         {
             InitializeComponent();
-            Font font = Main.unicode ? FontLabel.Font : PKX.getPKXFont((float)8.25);
+            pkm = pk;
+
+            // Layer on Text
+            const int stretch = 50;
+            Height += stretch;
+
+            if (pkm != null && pkm.Format == 7)
+                Height += 40;
+
+            this.qr = qr;
+            this.icon = icon;
+            Line1 = line1;
+            Line2 = line2;
+            Line3 = line3;
+            Line4 = line4;
+
+            if (pkm != null && pkm.Format == 7)
+                updateBoxSlotCopies(null, null);
+            else
+                RefreshImage();
+        }
+
+        private void RefreshImage()
+        {
+            Font font = !Main.unicode ? FontLabel.Font : PKX.getPKXFont((float)8.25);
             Image preview = new Bitmap(45, 45);
             using (Graphics gfx = Graphics.FromImage(preview))
             {
                 gfx.FillRectangle(new SolidBrush(Color.White), 0, 0, preview.Width, preview.Height);
-                gfx.DrawImage(pkm, preview.Width / 2 - pkm.Width / 2, preview.Height / 2 - pkm.Height / 2);
+                gfx.DrawImage(icon, preview.Width / 2 - icon.Width / 2, preview.Height / 2 - icon.Height / 2);
             }
             // Layer on Preview Image
             Image pic = Util.LayerImage(qr, preview, qr.Width / 2 - preview.Width / 2, qr.Height / 2 - preview.Height / 2, 1);
-            
-            // Layer on Text
-            const int stretch = 50;
-            Height += stretch;
+
             Image newpic = new Bitmap(PB_QR.Width, PB_QR.Height);
             using (Graphics g = Graphics.FromImage(newpic))
             {
                 g.FillRectangle(new SolidBrush(Color.White), 0, 0, newpic.Width, newpic.Height);
                 g.DrawImage(pic, 0, 0);
 
-                g.DrawString(top, font, Brushes.Black, new PointF(18, qr.Height - 5));
-                g.DrawString(bottom, font, Brushes.Black, new PointF(18, qr.Height + 8));
-                g.DrawString(left.Replace(Environment.NewLine, "/").Replace("//", "   ").Replace(":/", ": "), font, Brushes.Black, new PointF(18, qr.Height + 20));
-                g.DrawString(right, font, Brushes.Black, new PointF(18, qr.Height + 32));
+                g.DrawString(Line1, font, Brushes.Black, new PointF(18, qr.Height - 5));
+                g.DrawString(Line2, font, Brushes.Black, new PointF(18, qr.Height + 8));
+                g.DrawString(Line3.Replace(Environment.NewLine, "/").Replace("//", "   ").Replace(":/", ": "), font, Brushes.Black, new PointF(18, qr.Height + 20));
+                g.DrawString(Line4 + extraText, font, Brushes.Black, new PointF(18, qr.Height + 32));
             }
             PB_QR.BackgroundImage = newpic;
         }
+
         private void PB_QR_Click(object sender, EventArgs e)
         {
             if (DialogResult.Yes != Util.Prompt(MessageBoxButtons.YesNo, "Copy QR Image to Clipboard?")) return;
@@ -59,13 +95,31 @@ namespace PKHeX
                 if (data.Contains("could not find")) { Util.Alert("Reader could not find QR data in the image."); return null; }
                 if (data.Contains("filetype not supported")) { Util.Alert("Input URL is not valid. Double check that it is an image (jpg/png).", address); return null; }
                 // Quickly convert the json response to a data string
-                string pkstr = data.Substring(data.IndexOf("#", StringComparison.Ordinal) + 1); // Trim intro
-                pkstr = pkstr.Substring(0, pkstr.IndexOf("\",\"error\":null}]}]", StringComparison.Ordinal)); // Trim outro
-                if (pkstr.Contains("nQR-Code:")) pkstr = pkstr.Substring(0, pkstr.IndexOf("nQR-Code:", StringComparison.Ordinal)); //  Remove multiple QR codes in same image
-                pkstr = pkstr.Replace("\\", ""); // Rectify response
+                const string cap = "\",\"error\":null}]}]";
+                const string intro = "[{\"type\":\"qrcode\",\"symbol\":[{\"seq\":0,\"data\":\"";
+                if (!data.StartsWith(intro))
+                    throw new Exception();
 
-                try { return Convert.FromBase64String(pkstr); }
-                catch { Util.Alert("QR string to Data failed.", pkstr); return null; }
+                string pkstr = data.Substring(intro.Length);
+                if (pkstr.Contains("nQR-Code:")) // Remove multiple QR codes in same image
+                    pkstr = pkstr.Substring(0, pkstr.IndexOf("nQR-Code:", StringComparison.Ordinal));
+                pkstr = pkstr.Substring(0, pkstr.IndexOf(cap, StringComparison.Ordinal)); // Trim outro
+                try
+                {
+                    if (!pkstr.StartsWith("http")) // G7
+                    {
+                        string fstr = Regex.Unescape(pkstr);
+                        byte[] raw = Encoding.Unicode.GetBytes(fstr);
+                        // Remove 00 interstitials and retrieve from offset 0x30, take PK7 Stored Size (always)
+                        return raw.ToList().Where((c, i) => i % 2 == 0).Skip(0x30).Take(0xE8).ToArray();
+                    } 
+                    // All except G7
+                    pkstr = pkstr.Substring(pkstr.IndexOf("#", StringComparison.Ordinal) + 1); // Trim URL
+                    pkstr = pkstr.Replace("\\", ""); // Rectify response
+
+                    return Convert.FromBase64String(pkstr);
+                }
+                catch { Util.Alert("QR string to Data failed."); return null; }
             }
             catch { Util.Alert("Unable to connect to the internet to decode QR code."); return null; }
         }
@@ -87,6 +141,21 @@ namespace PKHeX
                 catch { Util.Alert("Failed to set text to Clipboard"); }
             }
             return null;
+        }
+
+        private void updateBoxSlotCopies(object sender, EventArgs e)
+        {
+            if (pkm == null || pkm.Format != 7)
+                throw new ArgumentException("Can't update QR7 if pkm isn't a PK7!");
+            var box = (int) NUD_Box.Value - 1;
+            var slot = (int) NUD_Slot.Value - 1;
+            var copies = (int) NUD_Copies.Value;
+            var new_qr = QR7.GenerateQRCode7((PK7)pkm, box, slot, copies);
+            qr = new_qr;
+            SuspendLayout();
+            extraText = $" (Box {box+1}, Slot {slot+1}, {copies} cop{(copies > 1 ? "ies" : "y")})";
+            RefreshImage();
+            ResumeLayout();
         }
     }
 }

@@ -72,7 +72,11 @@ namespace PKHeX.Reflection
         private static void screenStrings(IEnumerable<BatchEditorStringInstruction> il)
         {
             var strings = Main.GameStrings ?? GameInfo.GameStrings.CreateFromCurrentCulture();
+            screenStrings(il, strings);
+        }
 
+        private static void screenStrings(IEnumerable<BatchEditorStringInstruction> il, GameInfo.GameStrings strings)
+        {
             foreach (var i in il.Where(i => !i.PropertyValue.All(char.IsDigit)))
             {
                 string pv = i.PropertyValue;

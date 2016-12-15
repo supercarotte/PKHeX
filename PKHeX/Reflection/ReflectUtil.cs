@@ -177,33 +177,54 @@ namespace PKHeX.Reflection
                 }
             }
 
-            BatchEditorModifyResult result = BatchEditorModifyResult.Error;
+            var result = BatchEditorModifyResult.Error;
             foreach (var cmd in Instructions)
             {
                 try
                 {
                     if (cmd.PropertyName == nameof(PKM.MetDate))
-                        PKM.MetDate = DateTime.ParseExact(cmd.PropertyValue, CONST_DATEFORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None);
+                        PKM.MetDate = DateTime.ParseExact(cmd.PropertyValue, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None);
                     else if (cmd.PropertyName == nameof(PKM.EggMetDate))
-                        PKM.EggMetDate = DateTime.ParseExact(cmd.PropertyValue, CONST_DATEFORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None);
+                        PKM.EggMetDate = DateTime.ParseExact(cmd.PropertyValue, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None);
                     else if (cmd.PropertyName == nameof(PKM.EncryptionConstant) && cmd.PropertyValue == CONST_RAND)
-                        ReflectUtil.SetValue(PKM, cmd.PropertyName, Util.rnd32().ToString());
+                        SetValue(PKM, cmd.PropertyName, Util.rnd32().ToString());
                     else if (cmd.PropertyName == nameof(PKM.PID) && cmd.PropertyValue == CONST_RAND)
                         PKM.setPIDGender(PKM.Gender);
-                    else if (cmd.PropertyName == nameof(PKM.EncryptionConstant) && cmd.PropertyValue == "PID")
+                    else if (cmd.PropertyName == nameof(PKM.EncryptionConstant) && cmd.PropertyValue == nameof(PKM.PID))
                         PKM.EncryptionConstant = PKM.PID;
                     else if (cmd.PropertyName == nameof(PKM.PID) && cmd.PropertyValue == CONST_SHINY)
                         PKM.setShinyPID();
                     else if (cmd.PropertyName == nameof(PKM.Species) && cmd.PropertyValue == "0")
                         PKM.Data = new byte[PKM.Data.Length];
+                    else if (cmd.PropertyName.StartsWith("IV") && cmd.PropertyValue == CONST_RAND)
+                        setRandomIVs(PKM, cmd);
+                    else if (cmd.Random)
+                        SetValue(PKM, cmd.PropertyName, cmd.RandomValue);
                     else
-                        ReflectUtil.SetValue(PKM, cmd.PropertyName, cmd.PropertyValue);
+                        SetValue(PKM, cmd.PropertyName, cmd.PropertyValue);
 
                     result = BatchEditorModifyResult.Modified;
                 }
                 catch { Console.WriteLine($"Unable to set {cmd.PropertyName} to {cmd.PropertyValue}."); }
             }
             return result;
+        }
+        private static void setRandomIVs(PKM PKM, BatchEditorStringInstruction cmd)
+        {
+            int MaxIV = PKM.Format <= 2 ? 15 : 31;
+            if (cmd.PropertyName == "IVs")
+            {
+                bool IV3 = Legal.Legends.Contains(PKM.Species) || Legal.SubLegends.Contains(PKM.Species);
+                int[] IVs = new int[6];
+                do
+                {
+                    for (int i = 0; i < 6; i++)
+                        IVs[i] = (int)(Util.rnd32() & MaxIV);
+                } while (IV3 && IVs.Where(i => i == MaxIV).Count() < 3);
+                ReflectUtil.SetValue(PKM, cmd.PropertyName, IVs);
+            }
+            else
+                ReflectUtil.SetValue(PKM, cmd.PropertyName, Util.rnd32() & MaxIV);
         }
 
         public static IEnumerable<T> applyFilters<T>(IEnumerable<T> enumerable, IEnumerable<BatchEditorStringInstruction> filters)

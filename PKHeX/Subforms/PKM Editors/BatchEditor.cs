@@ -225,46 +225,6 @@ namespace PKHeX
                 b.ReportProgress(i);
             }
         }
-        public static void screenStrings(IEnumerable<BatchEditorStringInstruction> il)
-        {
-            foreach (var i in il.Where(i => !i.PropertyValue.All(char.IsDigit)))
-            {
-                string pv = i.PropertyValue;
-                if (pv.StartsWith("$") && pv.Contains(','))
-                {
-                    string str = pv.Substring(1);
-                    var split = str.Split(',');
-                    int.TryParse(split[0], out i.Min);
-                    int.TryParse(split[1], out i.Max);
-
-                    if (i.Min == i.Max)
-                    {
-                        i.PropertyValue = i.Min.ToString();
-                        Console.WriteLine(i.PropertyName + " randomization range Min/Max same?");
-                    }
-                    else
-                        i.Random = true;
-                }
-
-                switch (i.PropertyName)
-                {
-                    case nameof(PKM.Species): i.setScreenedValue(Main.GameStrings.specieslist); continue;
-                    case nameof(PKM.HeldItem): i.setScreenedValue(Main.GameStrings.itemlist); continue;
-                    case nameof(PKM.Ability): i.setScreenedValue(Main.GameStrings.abilitylist); continue;
-                    case nameof(PKM.Nature): i.setScreenedValue(Main.GameStrings.natures); continue;
-                    case nameof(PKM.Ball): i.setScreenedValue(Main.GameStrings.balllist); continue;
-                    case nameof(PKM.Move1):
-                    case nameof(PKM.Move2):
-                    case nameof(PKM.Move3):
-                    case nameof(PKM.Move4):
-                    case nameof(PKM.RelearnMove1):
-                    case nameof(PKM.RelearnMove2):
-                    case nameof(PKM.RelearnMove3):
-                    case nameof(PKM.RelearnMove4):
-                        i.setScreenedValue(Main.GameStrings.movelist); continue;
-                }
-            }
-        }
         
         private void tabMain_DragEnter(object sender, DragEventArgs e)
         {
@@ -296,80 +256,6 @@ namespace PKHeX
                     return p.PropertyType.Name;
             
             return types[typeIndex - 1].GetProperty(propertyName).PropertyType.Name;
-        }
-
-        // Utility Methods
-        private static BatchEditorModifyResult ProcessPKM(PKM PKM, IEnumerable<BatchEditorStringInstruction> Filters, IEnumerable<BatchEditorStringInstruction> Instructions)
-        {
-            if (!PKM.ChecksumValid || PKM.Species == 0)
-                return BatchEditorModifyResult.Invalid;
-
-            Type pkm = PKM.GetType();
-
-            foreach (var cmd in Filters)
-            {
-                try
-                {
-                    if (!pkm.HasProperty(cmd.PropertyName))
-                        return BatchEditorModifyResult.Filtered;
-                    if (ReflectUtil.GetValueEquals(PKM, cmd.PropertyName, cmd.PropertyValue) != cmd.Evaluator)
-                        return BatchEditorModifyResult.Filtered;
-                }
-                catch
-                {
-                    Console.WriteLine($"Unable to compare {cmd.PropertyName} to {cmd.PropertyValue}.");
-                    return BatchEditorModifyResult.Filtered;
-                }
-            }
-
-            var result = BatchEditorModifyResult.Error;
-            foreach (var cmd in Instructions)
-            {
-                try
-                {
-                    if (cmd.PropertyName == nameof(PKM.MetDate))
-                        PKM.MetDate = DateTime.ParseExact(cmd.PropertyValue, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None);
-                    else if (cmd.PropertyName == nameof(PKM.EggMetDate))
-                        PKM.EggMetDate = DateTime.ParseExact(cmd.PropertyValue, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None);
-                    else if (cmd.PropertyName == nameof(PKM.EncryptionConstant) && cmd.PropertyValue == CONST_RAND)
-                        ReflectUtil.SetValue(PKM, cmd.PropertyName, Util.rnd32().ToString());
-                    else if(cmd.PropertyName == nameof(PKM.PID) && cmd.PropertyValue == CONST_RAND)
-                        PKM.setPIDGender(PKM.Gender);
-                    else if (cmd.PropertyName == nameof(PKM.EncryptionConstant) && cmd.PropertyValue == nameof(PKM.PID))
-                        PKM.EncryptionConstant = PKM.PID;
-                    else if (cmd.PropertyName == nameof(PKM.PID) && cmd.PropertyValue == CONST_SHINY)
-                        PKM.setShinyPID();
-                    else if (cmd.PropertyName == nameof(PKM.Species) && cmd.PropertyValue == "0")
-                        PKM.Data = new byte[PKM.Data.Length];
-                    else if (cmd.PropertyName.StartsWith("IV") && cmd.PropertyValue == CONST_RAND)
-                        setRandomIVs(PKM, cmd);
-                    else if (cmd.Random)
-                        ReflectUtil.SetValue(PKM, cmd.PropertyName, cmd.RandomValue);
-                    else
-                        ReflectUtil.SetValue(PKM, cmd.PropertyName, cmd.PropertyValue);
-
-                    result = BatchEditorModifyResult.Modified;
-                }
-                catch { Console.WriteLine($"Unable to set {cmd.PropertyName} to {cmd.PropertyValue}."); }
-            }
-            return result;
-        }
-        private static void setRandomIVs(PKM PKM, BatchEditorStringInstruction cmd)
-        {
-            int MaxIV = PKM.Format <= 2 ? 15 : 31;
-            if (cmd.PropertyName == "IVs")
-            {
-                bool IV3 = Legal.Legends.Contains(PKM.Species) || Legal.SubLegends.Contains(PKM.Species);
-                int[] IVs = new int[6];
-                do
-                {
-                    for (int i = 0; i < 6; i++)
-                        IVs[i] = (int)(Util.rnd32() & MaxIV);
-                } while (IV3 && IVs.Where(i => i == MaxIV).Count() < 3);
-                ReflectUtil.SetValue(PKM, cmd.PropertyName, IVs);
-            }
-            else
-                ReflectUtil.SetValue(PKM, cmd.PropertyName, Util.rnd32() & MaxIV);
         }
 
         private void B_Add_Click(object sender, EventArgs e)
